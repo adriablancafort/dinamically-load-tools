@@ -31,9 +31,7 @@ const startTask = tool({
     }
     
     tools = { finishTask, ...usefulTools };
-    
-    console.log(`\n🔧 [Task Started] Loaded tools: ${toolNames.join(', ')}`);
-        
+   
     return {
       message: `Tools loaded: ${toolNames.join(', ')}. Use them to complete the task.`,
     };
@@ -44,26 +42,18 @@ const finishTask = tool({
   description: 'Call this tool when the task is completed or needs to be ended. This will unload the task-specific tools.',
   inputSchema: z.object({
     success: z.boolean().describe('Whether the task was completed successfully'),
-    summary: z.string().describe('A brief summary of what was accomplished or why the task failed'),
   }),
-  execute: async ({ success, summary }) => {
-    const previousTools = Object.keys(tools).filter(t => t !== 'finishTask');
-    
+  execute: async ({ success }) => {
     tools = { startTask };
-    
-    console.log(`\n${success ? '✅' : '❌'} [Task ${success ? 'Complete' : 'Failed'}] ${summary}`);
-    console.log(`🗑️  Unloaded: ${previousTools.join(', ')}\n`);
     
     return {
       success,
-      summary,
       message: 'Tools unloaded. Ready for a new task.',
     };
   },
 });
 
 async function main() {
-  console.log('Initializing tool embeddings...');
   await initializeToolEmbeddings();
 
   tools = { startTask };

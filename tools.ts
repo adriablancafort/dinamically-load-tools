@@ -6,16 +6,12 @@ import { searchWeb } from './tools/searchWeb';
 import { calculateMath } from './tools/calculateMath';
 import { scheduleReminder } from './tools/scheduleReminder';
 
-interface ToolMetadata {
-  name: string;
-  tool: any;
-  embedding?: number[];
-}
-
 const allTools = { sendEmail, weather, searchWeb, calculateMath, scheduleReminder };
-const toolRegistry: ToolMetadata[] = Object.entries(allTools).map(([name, tool]) => ({
+
+const toolRegistry = Object.entries(allTools).map(([name, tool]) => ({
   name,
   tool,
+  embedding: undefined as number[] | undefined,
 }));
 
 export async function initializeToolEmbeddings() {
@@ -36,20 +32,16 @@ export async function searchTools(userQuery: string, topK: number = 3): Promise<
     value: userQuery,
   });
   
-  const toolScores = toolRegistry.map(toolMeta => ({
-    toolMeta,
-    score: toolMeta.embedding ? cosineSimilarity(queryEmbedding, toolMeta.embedding) : 0,
-  }));
-  
-  toolScores.sort((a, b) => b.score - a.score);
-  const topTools = toolScores.slice(0, topK);
-  
-  const relevantTools: Record<string, any> = {};
-  topTools
+  return toolRegistry
+    .map(toolMeta => ({
+      toolMeta,
+      score: toolMeta.embedding ? cosineSimilarity(queryEmbedding, toolMeta.embedding) : 0,
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topK)
     .filter(({ score }) => score > 0.3)
-    .forEach(({ toolMeta }) => {
-      relevantTools[toolMeta.name] = toolMeta.tool;
-    });
-  
-  return relevantTools;
+    .reduce((tools, { toolMeta }) => {
+      tools[toolMeta.name] = toolMeta.tool;
+      return tools;
+    }, {} as Record<string, any>);
 }
